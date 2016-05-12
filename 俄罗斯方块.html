@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>俄罗斯方块</title>
+<style>
+*{
+	margin: 0;
+	padding: 0;
+}
+ #board{
+ 	border: 1px solid #000;
+ 	border-collapse: collapse;
+	margin: 50px auto;
+ }
+ #board td{
+ 	width: 30px;
+ 	height: 30px;
+ 	border: 1px dotted #0CC;
+ }
+
+</style>
+</head>
+<body>
+<table id="board"></table>
+<script>
+	var oBoard = document.getElementById('board');
+	var grid = new Array(18);
+	for (var i = 0; i < 18; i++) {
+		var oTr = oBoard.insertRow();
+		grid[i] = new Array(10);
+		for(var j =0;j<10;j++){
+			oTr.insertCell();
+			grid[i][j] = 0;
+		}
+
+	};
+	// 1.初始化游戏面板
+	// 2.生成方块
+	var aBlock = [//方块的形状点阵数组
+		[0xCC00],
+		[0x8888,0xF0],
+		[0x8C40,0x6C00],
+		[0x4C80,0xC600],
+		[0x44C0,0x8E00,0xC880,0xE200],
+		[0x88C0,0xE800,0xC440,0x2E00],
+		[0x4E00,0x8C80,0xE400,0x4C40]
+	];
+	var iRand;
+	var index = 0;
+	var aBlockPos = [];
+	var isBottom = false;
+	var timer;
+	
+	function getNextBlock(isNew){
+		iRand = isNew?Math.floor(Math.random()*7):iRand;
+		var sBlock = aBlock[iRand][isNew?0:++index%aBlock[iRand].length].toString(2);//随机抽取一个方块
+		sBlock = new Array(17-sBlock.length).join("0")+sBlock;
+		var aBm = sBlock.match(/\d{4}/g);
+		
+		var iMinX, iMinY;
+		if(isNew){
+			iMinX = 3;
+			iMinY = 0;
+		}else{
+			iMinX = aBlockPos[0].x;
+			iMinY = aBlockPos[0].y;
+			for (var i=1; i<4; i++) {
+				if (aBlockPos[i].x < iMinX) {
+					iMinX=aBlockPos[i].x;
+				}
+				if (aBlockPos[i].y < iMinY) {
+					iMinY=aBlockPos[i].y;
+				}
+			}
+		}
+
+		var nextBlock= [];
+		for (var i = 0; i < 4; i++) {
+			var sValue = aBm[i];
+			for(var j=0;j<sValue.length;j++){
+				if (sValue.charAt(j) == '1') {
+					nextBlock.push({
+						x:j+iMinX,
+						y:i+iMinY
+					});
+				}
+			}
+		}
+		return nextBlock;
+	}
+	
+	function creatBlock(){
+		timer = setInterval(function(){
+		move('down');
+		},700);
+		drawBlock();
+	}
+
+	function easeBlock(){
+		for (var i = 0; i < 4; i++) {
+				oBoard.rows[aBlockPos[i].y].cells[aBlockPos[i].x].style.background = 'transparent';
+				}
+	}
+
+	function drawBlock(){
+		for (var i = 0; i < 4; i++) {
+			oBoard.rows[aBlockPos[i].y].cells[aBlockPos[i].x].style.background = 'red';
+		}
+	}
+
+	function easeBoard(){
+		for (var i = 0; i < 18; i++) {
+			for (var j = 0; j < 10; j++) {
+				oBoard.rows[i].cells[j].style.background = 'transparent';
+			}
+		}
+	}
+	
+	function repainBoard(){
+		for (var i = 0; i < 18; i++) {
+			for (var j = 0; j < 10; j++) {
+				if (grid[i][j] == 1) {
+					oBoard.rows[i].cells[j].style.background = 'red';
+				}
+			}
+		}
+	}
+	
+	aBlockPos =  getNextBlock(true);
+	creatBlock();
+		// 3.移动方块
+	function move(direction){
+			
+			var checkResult = checkBoundary(aBlockPos, direction);
+			if (checkResult) {
+				easeBlock();
+				if (direction == 'down' && !isBottom) {
+					for (var i = 0; i < 4; i++) {
+						aBlockPos[i].y++;
+					}
+				}else if(direction == 'left' && !isBottom){
+					for (var i = 0; i < 4; i++) {
+						aBlockPos[i].x--;
+					}
+				}else if(direction == 'right' && !isBottom){
+					for (var i = 0; i < 4; i++) {	
+						aBlockPos[i].x++;
+					}
+					
+				}
+				drawBlock();
+			}
+			if (isBottom){
+				clearInterval(timer);
+				for (var i = 0; i < 4; i++) {
+					grid[aBlockPos[i].y][aBlockPos[i].x]=1;
+				}
+				//消行积分有问题！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！
+				for (var i = 0; i < 18; i++) {
+					for (var j = 0; j < 10; j++) {
+						if (grid[i][j] == 0) {
+							break;
+						}
+					}
+					if (j == 10) {
+						for (var k=i-1; k>=0; k--) {
+							grid[k+1] = grid[k];
+						}
+						grid[0]= new Array(10);
+						easeBoard();
+						repainBoard();
+						}
+						
+					}
+				var nextBlock = getNextBlock(true);
+				var checkResult = checkBoundary(nextBlock);
+				if(checkResult){
+					aBlockPos = nextBlock;
+					creatBlock();
+				}else{
+					aBlockPos = nextBlock;
+					drawBlock();
+					alert('game over!');
+					clearInterval(timer);
+				}
+				isBottom = false;
+			}
+		}
+
+	function checkBoundary(aBlockPos,direction){
+		for (var i = 0; i < 4; i++) {
+		 	if (direction == 'left') {
+		 		if (aBlockPos[i].x ==0 || grid[aBlockPos[i].y][aBlockPos[i].x-1] == 1) {
+		 			return false;
+		 			}
+		 		}else if (direction == 'right') {
+		 		if (aBlockPos[i].x ==9 || grid[aBlockPos[i].y][aBlockPos[i].x+1] == 1) {
+		 			return false;
+		 			}
+		 		}else if (direction == 'down') {
+		 		if (aBlockPos[i].y ==17 || grid[aBlockPos[i].y+1][aBlockPos[i].x] == 1) {
+		 			isBottom = true;
+		 			return false;
+		 			}
+		 		}else{
+		 			if(aBlockPos[i].x<0 || aBlockPos[i].x>9 || aBlockPos[i].y<0 || aBlockPos[i].x>17){
+		 				return false;
+		 			}
+		 			if (grid[aBlockPos[i].y][aBlockPos[i].x] == 1) {
+		 			return false;
+
+		 			}
+		 		}
+		 		
+			}
+			return true;
+		}		 
+
+	document.onkeydown = function(e){
+		e = e||window.event;
+		var keyCode = e.which || e.keyCode;
+		switch(keyCode){
+			case 37:
+				move('left');
+				break;
+			case 38:
+				var nextBlock = getNextBlock();
+				var checkResult = checkBoundary(nextBlock);
+				if(checkResult){
+					easeBlock();
+					aBlockPos = nextBlock;
+					drawBlock();
+				}else{
+					index--;
+				}
+				break;
+			case 39:
+				move('right');
+				break;
+			case 40:
+				move('down');
+				break;
+			}
+		}
+</script>
+</body>
+</html>
